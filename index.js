@@ -1,24 +1,9 @@
 const mongoose = require("mongoose");
-const ejs = require("ejs");
-
 const express = require("express");
+
 const app = express();
 
-// Task 1
-// Copy in your SRV connection string
-// Set the name of your database to CSHComments
-
-const mongoDBConnectionString = "mongodb+srv://SE12:CSH2024@cluster0.hq3gcj3.mongodb.net/CSHComments?retryWrites=true&w=majority&appName=Cluster0";
-
-mongoose
-  .connect(mongoDBConnectionString)
-  .then(() => console.log("MongoDB connection successful."))
-  .catch((err) => console.error("MongoDB connection error:", err));
-
 app.use(express.static(__dirname + "/public"));
-
-// Task 2
-// Define the middleware to parse incoming requests as JSON
 
 app.use(express.json());
 
@@ -29,54 +14,67 @@ app.use((req, res, next) => {
   next();
 });
 
-// Task 3
-// Fill out the commentSchema below with the following:
-// username (required)
-// teacher (required)
-// comment (required)
-// rating
-
-// Include the appropriate data types
-
-const commentSchema = new mongoose.Schema(
+const teacherSchema = new mongoose.Schema(
   {
-    // Write your Schema here, ignore timestamps
-    username: {type: String,required: true},
-    teacher:{type: String,required: true},
-    comment:{type: String,required: true},
-    rating:{type:Number},
+    name: { type: String, required: true },
+    department: { type: String },
+    image: { type: String },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
-// Task 4
-// Associate your commentSchema to the "Comment" model
-const Comment = mongoose.model("Comment", commentSchema);
-// CONTINUE in comments.ejs for Task 5
+const Teacher = mongoose.model("Teacher", teacherSchema, "Teachers");
 
-// GET route - READ all comments
-app.get("/", (req, res) => {
-  Comment.find({})
-    .sort({ createdAt: -1 })
-    .then((comments) => {
-      res.render("comments", { comments: comments });
-    });
+const ratingSchema = new mongoose.Schema(
+  {
+    username: { type: String },
+    teacher: { type: String },
+    comment: { type: String },
+    rating: { type: Number },
+  },
+  { timestamps: true }
+);
+
+const Rating = mongoose.model("Rating", ratingSchema, "Rating");
+
+app.get("/", async (req, res) => {
+  const teachers = await Teacher.find({}).sort({ createdAt: -1 });
+  res.render("teachers.ejs", { teachers });
 });
 
-// POST route - CREATE a new comment
-app.post("/smth", (req, res) => {
-  const comment = new Comment({
+app.get("/ratings", async (req, res) => {
+  const ratings = await Rating.find({}).sort({ createdAt: -1 });
+  res.render("ratings.ejs", { ratings });
+});
+
+app.post("/add/rating", async (req, res) => {
+  const newRating = await new Rating({
     username: req.body.username,
     teacher: req.body.teacher,
-    rating: req.body.rating,
     comment: req.body.comment,
-  });
-
-  comment.save().then((newComment) => {
-    res.json(newComment);
-  });
+    rating: req.body.rating,
+  }).save();
+  res.json(newRating);
 });
 
-app.listen(3000, () => {
-  console.log(`Server running.`);
+app.post("/add/teacher", async (req, res) => {
+  const newTeacher = await new Teacher({
+    name: req.body.name,
+    department: req.body.department,
+    image: req.body.image,
+  }).save();
+
+  res.json(newTeacher);
 });
+
+async function startServer() {
+  await mongoose.connect(
+    "mongodb+srv://SE12:CSH2025@cluster0.xfcbvkb.mongodb.net/rando12?retryWrites=true&w=majority&appName=Cluster0"
+  );
+
+  app.listen(3000, () => {
+    console.log(`Server running.`);
+  });
+}
+
+startServer();
